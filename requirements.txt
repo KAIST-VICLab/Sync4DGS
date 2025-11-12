@@ -8,7 +8,7 @@ scipy
 scikit-image
 submodules/diff_gaussian_rasterization_df
 submodules/simple-knn
-# opencv-python
+opencv-python
 # einops
 # matplotlib
 # h5py
