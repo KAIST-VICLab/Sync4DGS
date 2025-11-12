@@ -12,7 +12,7 @@
   <br>A novel view synthesis result of Sync4DGS.
 </div>
 
-<br>**Summary**: **Sync4DGS** with 3D trajectory-driven time alignment
+<br>**Summary**: Sync4DGS with 3D trajectory-driven time alignment
 
 <br>
 
