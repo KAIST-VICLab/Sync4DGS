@@ -7,7 +7,7 @@
 </p>
 
 <div align='center'>
-  <br><img src="img/image01.png" width=70%>
+  <br><img src="img/thumbnail.png" width=70%>
   <!--<img src="img/eigentrajectory-model.svg" width=70%>-->
   <br>A novel view synthesis result of Sync4DGS.
 </div>
