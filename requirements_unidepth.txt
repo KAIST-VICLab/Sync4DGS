@@ -5,9 +5,9 @@ huggingface-hub>=0.22.0
 imageio
 matplotlib
 numpy==2.2.5
-opencv-python
+# opencv-python
 pandas
-# pillow>=10.2.0
+pillow>=10.2.0
 protobuf>=4.25.3
 scipy
 tables
