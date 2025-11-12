@@ -17,7 +17,7 @@ dependencies:
   - scipy
   - scikit-image
   - joblib
-  - numpy=1.16
+  - numpy=1.18
   - pip:
     - submodules/diff_gaussian_rasterization_df
     - submodules/simple-knn
