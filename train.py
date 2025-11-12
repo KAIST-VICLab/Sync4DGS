@@ -1031,7 +1031,7 @@ if __name__ == "__main__":
     #     }
     # }
 
-    # Stage 2
+    # # Stage 2
     # if tb_writer is not None:
     #     training_stage2(lp.extract(args), op.extract(args), pp.extract(args), args.start_checkpoint, args.debug_from, args, time_offset_list, fps_ratio_list, tb_writer)
     # elif tb_writer is None and sweep_config is not None:
