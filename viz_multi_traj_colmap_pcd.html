@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>N-Trajectory & Point Cloud Visualizer</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #ffffff; }
+    #loading-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background:#ffffff; color: #000000; display:flex; align-items:center; justify-content:center; }
+  </style>
+</head>
+<body>
+  <div id="loading-overlay">Loading Data...</div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    class Visualizer {
+      // ===== 🎨 16개로 확장된 색상 팔레트 =====
+      COLOR_PALETTE = [
+          0xff0000, // 1. 빨강 (Red)
+          0x0000ff, // 2. 파랑 (Blue)
+          0x00ff00, // 3. 초록 (Green)
+          0xffff00, // 4. 노랑 (Yellow)
+          0xff00ff, // 5. 마젠타 (Magenta)
+          0x00ffff, // 6. 시안 (Cyan)
+          0xffa500, // 7. 주황 (Orange)
+          0x800080, // 8. 보라 (Purple)
+          0x008000, // 9. 진한 초록 (Dark Green)
+          0xa52a2a, // 10. 갈색 (Brown)
+          0x000080, // 11. 남색 (Navy)
+          0x808000, // 12. 올리브 (Olive)
+          0x008080, // 13. 청록 (Teal)
+          0xffc0cb, // 14. 분홍 (Pink)
+          0x808080, // 15. 회색 (Gray)
+          0xfa8072, // 16. 살몬 (Salmon)
+      ];
+
+      constructor() {
+        this.data = null; this.config = {}; this.currentFrame = 0; this.lastFrameTime = 0;
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.00001, 1000);
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setClearColor(0xffffff);
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(this.renderer.domElement);
+        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.zoomSpeed = 3.0;
+        this.controls.panSpeed = 3.0;
+        this.scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        this.scene.add(new THREE.DirectionalLight(0xffffff, 0.5));
+        
+        this.all_trajectories = {}; 
+
+        window.addEventListener('resize', () => this.onWindowResize());
+        this.loadData();
+      }
+      
+      async loadData() {
+        try {
+          let buffer;
+          if (window.embeddedBase64) {
+            const str = atob(window.embeddedBase64);
+            const bytes = new Uint8Array(str.length);
+            for (let i = 0; i < str.length; i++) bytes[i] = str.charCodeAt(i);
+            buffer = bytes.buffer;
+          } else {
+            const res = await fetch('data.bin');
+            buffer = await res.arrayBuffer();
+          }
+
+          const view = new DataView(buffer);
+          const headerLen = view.getUint32(0, true);
+          const headerTxt = new TextDecoder().decode(buffer.slice(4, 4 + headerLen));
+          const header = JSON.parse(headerTxt);
+          
+          const compressed = new Uint8Array(buffer, 4 + headerLen);
+          const dataBlob = pako.inflate(compressed).buffer;
+
+          this.data = {};
+          for (const key in header) {
+            if (key === "meta") continue;
+            const meta = header[key];
+            const slice = dataBlob.slice(meta.offset, meta.offset + meta.length);
+            this.data[key] = { data: new Float32Array(slice), shape: meta.shape };
+          }
+          this.config = header.meta;
+          
+          this.initScene();
+          document.getElementById('loading-overlay').style.display = 'none';
+          this.startAnimation();
+        } catch (err) {
+          console.error("Error:", err);
+          document.getElementById('loading-overlay').textContent = `Error: ${err.message}`;
+        }
+      }
+
+      initScene() {
+        this.initPointCloud();
+        this.initAllTrajectories();
+      }
+
+      initPointCloud() {
+        if (!this.data.pcd_points) return;
+        
+        const points = this.data.pcd_points.data;
+        const colors = this.data.pcd_colors.data;
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(points, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        
+        const material = new THREE.PointsMaterial({ 
+            size: 0.015, 
+            vertexColors: true,
+            sizeAttenuation: true
+        });
+
+        const pointCloud = new THREE.Points(geometry, material);
+        this.scene.add(pointCloud);
+      }
+
+      createTrajectories(numTrajs, totalFrames, color) {
+        const trajectories = [];
+        for (let i = 0; i < numTrajs; i++) {
+          const geom = new THREE.BufferGeometry();
+          geom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(totalFrames * 3), 3));
+          const line = new THREE.Line(geom, new THREE.LineBasicMaterial({ color: color }));
+          this.scene.add(line);
+          trajectories.push(line);
+        }
+        return trajectories;
+      }
+      
+      initAllTrajectories() {
+        if (!this.config.trajectory_metas) return;
+        
+        this.config.trajectory_metas.forEach((meta, index) => {
+            const dataKey = `trajectories_${index}`;
+            if (this.data[dataKey]) {
+                const numTrajs = meta.numTrajectoryPoints;
+                const totalFrames = meta.totalFrames;
+                const color = this.COLOR_PALETTE[index % this.COLOR_PALETTE.length];
+                
+                this.all_trajectories[dataKey] = this.createTrajectories(numTrajs, totalFrames, color);
+            }
+        });
+      }
+      
+      clearAllTrajectories() {
+        for (const key in this.all_trajectories) {
+            const trajectories = this.all_trajectories[key];
+            for (const line of trajectories) {
+                line.geometry.setDrawRange(0, 0);
+            }
+        }
+      }
+
+      updateAllTrajectories(frameIndex) {
+        for (const dataKey in this.all_trajectories) {
+            if (!this.data[dataKey]) continue;
+
+            const trajectories = this.all_trajectories[dataKey];
+            const trajData = this.data[dataKey];
+            const numTrajs = trajData.shape[1];
+            
+            for (let i = 0; i < numTrajs; i++) {
+                const line = trajectories[i];
+                const positions = line.geometry.attributes.position.array;
+                for (let t = 0; t <= frameIndex; t++) {
+                    const offset = (t * numTrajs + i) * 3;
+                    positions[t * 3]     = trajData.data[offset];
+                    positions[t * 3 + 1] = trajData.data[offset + 1];
+                    positions[t * 3 + 2] = trajData.data[offset + 2];
+                }
+                line.geometry.setDrawRange(0, frameIndex + 1);
+                line.geometry.attributes.position.needsUpdate = true;
+            }
+        }
+      }
+      
+      animate() {
+        requestAnimationFrame(() => this.animate());
+        this.controls.update();
+        const now = performance.now();
+        const frameInterval = 1000 / this.config.baseFrameRate;
+        
+        if (now - this.lastFrameTime > frameInterval) {
+          this.lastFrameTime = now;
+          
+          const totalFrames = this.config.trajectory_metas[0].totalFrames;
+          this.currentFrame = (this.currentFrame + 1) % totalFrames;
+          
+          if (this.currentFrame === 0) {
+            this.clearAllTrajectories();
+          }
+          this.updateAllTrajectories(this.currentFrame);
+        }
+        this.renderer.render(this.scene, this.camera);
+      }
+
+      startAnimation() {
+        this.lastFrameTime = performance.now();
+        this.camera.position.set(0, 0.5, 0.5);
+        this.controls.target.set(0, 0, 0);
+        this.animate();
+      }
+
+      onWindowResize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+    }
+    new Visualizer();
+  </script>
+</body>
+</html>
