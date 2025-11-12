@@ -29,7 +29,6 @@ import shutil
 import pickle
 import sys 
 import argparse
-
 sys.path.append(".")
 from dataset_utils.etc_utils import posetow2c_matrcs, rotmat2qvec, getcolmapsinglen3d
 from dataset_utils.colmap.pre_colmap import * 
