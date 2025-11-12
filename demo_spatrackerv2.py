@@ -679,7 +679,7 @@ if __name__ == "__main__":
 
         out_file = out_dir + f"/{args.video_name}.npz"
         np.savez(out_file, **data_npz_load)
-        a=3
+
         print(
             f"Results saved to {out_file}.\nTo visualize them with tapip3d, run: [bold yellow]bash tapip3d_viz.sh[/bold yellow]"
         )
