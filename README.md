@@ -1,8 +1,6 @@
 <h2 align="center">Sync4DGS: Dynamic 3D Scene Reconstruction from Any Unsynchronized Multi-View Videos</h2>
 <p align="center">
   <a href="https://semyeong-yu.github.io/"><strong>Semyeong Yu</strong></a>
-  ·  
-  <strong>Semyeong Yu</strong>
   ·
   <a href="https://www.viclab.kaist.ac.kr/"><strong>Munchurl Kim</strong></a>
   <br>
@@ -24,7 +22,6 @@
 2. [Preprocess Datasets](#-Preprocess-Datasets)
 3. [Training](#-Training)
 4. [Evaluation](#-Evaluation)
-5. [Pretrained models](#-Pretrained-models)
 
 
 ## Setup
@@ -105,10 +102,3 @@ Run command:
 ```shell
 python render.py --model_path <path to trained model>  --source_path <path to dataset> --skip_train --iteration <trained iter>
 ```
-
-## 📖 Citation
-<!-- If you find this code useful for your research, please cite our trajectory prediction papers :) -->
-
-[**`🛍️ Sync4DGS 🛍️`**](https://github.com/KAIST-VICLab/Sync4DGS) **|**
-
-<br>
