@@ -15,6 +15,7 @@
 <br>**Summary**: Sync4DGS with 3D trajectory-driven time alignment
 <br>
 
+
 ## Contents
 
 1. [Setup](#-Setup)
